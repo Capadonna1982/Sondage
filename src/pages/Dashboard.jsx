@@ -241,11 +241,18 @@ function ResponsesTab({ questions, responses, answers, onRefresh }) {
     e.stopPropagation()
     if (!confirm('Supprimer cette réponse définitivement ?')) return
     setDeleting(rid)
-    await supabase.from('answers').delete().eq('response_id', rid)
-    await supabase.from('responses').delete().eq('id', rid)
-    setDeleting(null)
-    if (selected === rid) setSelected(null)
-    onRefresh()
+    try {
+      const { error: err1 } = await supabase.from('answers').delete().eq('response_id', rid)
+      if (err1) { console.error('Erreur suppression answers:', err1); setDeleting(null); return }
+      const { error: err2 } = await supabase.from('responses').delete().eq('id', rid)
+      if (err2) { console.error('Erreur suppression response:', err2); setDeleting(null); return }
+      if (selected === rid) setSelected(null)
+      await onRefresh()
+    } catch(err) {
+      console.error('Erreur suppression:', err)
+    } finally {
+      setDeleting(null)
+    }
   }
 
   return (
