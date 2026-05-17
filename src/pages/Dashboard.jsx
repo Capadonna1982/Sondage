@@ -56,10 +56,17 @@ export default function Dashboard() {
     setLoading(false)
   }
 
+  async function resetViews() {
+    if (!confirm('Réinitialiser toutes les statistiques de vues ? Cette action est irréversible.')) return
+    await supabase.from('page_views').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    loadAll()
+  }
+
+  const realResponses = responses.filter(r => !r.is_test)
   const views = pageViews.filter(v => v.event === 'view').length
-  const submits = pageViews.filter(v => v.event === 'submit').length
+  const submits = realResponses.length
   const convRate = views > 0 ? Math.round((submits / views) * 100) : 0
-  const prospects = responses.filter(r => r.email)
+  const prospects = realResponses.filter(r => r.email)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -94,7 +101,7 @@ export default function Dashboard() {
           <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-soft)' }}>Chargement des données…</div>
         ) : (
           <>
-            {tab === 0 && <StatsTab questions={questions} responses={responses} answers={answers} views={views} submits={submits} convRate={convRate} prospects={prospects.length} pageViews={pageViews} />}
+            {tab === 0 && <StatsTab questions={questions} responses={realResponses} answers={answers} views={views} submits={submits} convRate={convRate} prospects={prospects.length} pageViews={pageViews} onResetViews={resetViews} />}
             {tab === 1 && <ResponsesTab questions={questions} responses={responses} answers={answers} onRefresh={loadAll} />}
             {tab === 2 && <ProspectsTab prospects={prospects} />}
             {tab === 3 && <BuilderTab questions={questions} onRefresh={loadAll} />}
@@ -115,7 +122,7 @@ function StatCard({ label, value, sub, accent }) {
   )
 }
 
-function StatsTab({ questions, responses, answers, views, submits, convRate, prospects, pageViews }) {
+function StatsTab({ questions, responses, answers, views, submits, convRate, prospects, pageViews, onResetViews }) {
   function getChartData(q) {
     const qAns = answers.filter(a => a.question_id === q.id)
     if (!qAns.length) return []
@@ -158,6 +165,11 @@ function StatsTab({ questions, responses, answers, views, submits, convRate, pro
 
   return (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button onClick={onResetViews} style={{ fontSize: 13, padding: '7px 16px', borderRadius: 8, border: '1px solid #f5c0c0', color: '#c0605e', background: 'none', cursor: 'pointer' }}>
+          🔄 Réinitialiser les statistiques
+        </button>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 28 }}>
         <StatCard label="Pages vues" value={views} sub="visites totales du sondage" accent="var(--forest)" />
         <StatCard label="Soumissions" value={submits} sub="sondages complétés" accent="var(--forest-mid)" />
@@ -237,6 +249,12 @@ function ResponsesTab({ questions, responses, answers, onRefresh }) {
     } catch { return val }
   }
 
+  async function toggleTest(e, r) {
+    e.stopPropagation()
+    await supabase.from('responses').update({ is_test: !r.is_test }).eq('id', r.id)
+    await onRefresh()
+  }
+
   async function deleteResponse(e, rid) {
     e.stopPropagation()
     if (!confirm('Supprimer cette réponse définitivement ?')) return
@@ -262,7 +280,7 @@ function ResponsesTab({ questions, responses, answers, onRefresh }) {
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-soft)' }}>Aucune réponse pour l'instant.</div>
       )}
       {responses.map(r => (
-        <div key={r.id} className="card" style={{ marginBottom: 10, cursor: 'pointer', borderLeft: selected === r.id ? '3px solid var(--forest)' : '3px solid transparent', padding: '14px 20px', opacity: deleting === r.id ? 0.5 : 1 }}
+        <div key={r.id} className="card" style={{ marginBottom: 10, cursor: 'pointer', borderLeft: selected === r.id ? '3px solid var(--forest)' : r.is_test ? '3px solid #e8d4b0' : '3px solid transparent', padding: '14px 20px', opacity: deleting === r.id ? 0.5 : 1, background: r.is_test ? '#fdfaf5' : 'white' }}
           onClick={() => setSelected(selected === r.id ? null : r.id)}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -273,6 +291,10 @@ function ResponsesTab({ questions, responses, answers, onRefresh }) {
               <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: r.completed ? 'var(--forest-light)' : 'var(--blush-light)', color: r.completed ? 'var(--forest-dark)' : '#c0605e' }}>
                 {r.completed ? '✓ Complété' : 'Partiel'}
               </span>
+              <button onClick={(e) => toggleTest(e, r)}
+                style={{ fontSize: 12, padding: '4px 10px', color: r.is_test ? '#c4a882' : 'var(--text-soft)', border: `1px solid ${r.is_test ? '#e8d4b0' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer', background: r.is_test ? '#fdf6ed' : 'none', flexShrink: 0 }}>
+                {r.is_test ? '🧪 Test' : 'Marquer test'}
+              </button>
               <button onClick={(e) => deleteResponse(e, r.id)} disabled={deleting === r.id}
                 style={{ fontSize: 12, padding: '4px 10px', color: '#c0605e', border: '1px solid #f5c0c0', borderRadius: 8, cursor: 'pointer', background: 'none', flexShrink: 0 }}>
                 {deleting === r.id ? '…' : 'Supprimer'}
