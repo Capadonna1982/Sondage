@@ -29,6 +29,16 @@ export default function Dashboard() {
   useEffect(() => {
     if (!requireAuth(navigate)) return
     loadAll()
+
+    // Temps réel — mise à jour automatique
+    const channel = supabase
+      .channel('dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'responses' }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'answers' }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'page_views' }, () => loadAll())
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
   }, [])
 
   async function loadAll() {
@@ -85,7 +95,7 @@ export default function Dashboard() {
         ) : (
           <>
             {tab === 0 && <StatsTab questions={questions} responses={responses} answers={answers} views={views} submits={submits} convRate={convRate} prospects={prospects.length} pageViews={pageViews} />}
-            {tab === 1 && <ResponsesTab questions={questions} responses={responses} answers={answers} />}
+            {tab === 1 && <ResponsesTab questions={questions} responses={responses} answers={answers} onRefresh={loadAll} />}
             {tab === 2 && <ProspectsTab prospects={prospects} />}
             {tab === 3 && <BuilderTab questions={questions} onRefresh={loadAll} />}
           </>
@@ -212,8 +222,9 @@ function StatsTab({ questions, responses, answers, views, submits, convRate, pro
   )
 }
 
-function ResponsesTab({ questions, responses, answers }) {
+function ResponsesTab({ questions, responses, answers, onRefresh }) {
   const [selected, setSelected] = useState(null)
+  const [deleting, setDeleting] = useState(null)
 
   function getAnswersFor(rid) { return answers.filter(a => a.response_id === rid) }
   function getQ(qid) { return questions.find(q => q.id === qid) }
@@ -226,6 +237,17 @@ function ResponsesTab({ questions, responses, answers }) {
     } catch { return val }
   }
 
+  async function deleteResponse(e, rid) {
+    e.stopPropagation()
+    if (!confirm('Supprimer cette réponse définitivement ?')) return
+    setDeleting(rid)
+    await supabase.from('answers').delete().eq('response_id', rid)
+    await supabase.from('responses').delete().eq('id', rid)
+    setDeleting(null)
+    if (selected === rid) setSelected(null)
+    onRefresh()
+  }
+
   return (
     <div>
       <p style={{ fontSize: 14, color: 'var(--text-soft)', marginBottom: 16 }}>{responses.length} réponse(s) enregistrée(s)</p>
@@ -233,16 +255,22 @@ function ResponsesTab({ questions, responses, answers }) {
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-soft)' }}>Aucune réponse pour l'instant.</div>
       )}
       {responses.map(r => (
-        <div key={r.id} className="card" style={{ marginBottom: 10, cursor: 'pointer', borderLeft: selected === r.id ? '3px solid var(--forest)' : '3px solid transparent', padding: '14px 20px' }}
+        <div key={r.id} className="card" style={{ marginBottom: 10, cursor: 'pointer', borderLeft: selected === r.id ? '3px solid var(--forest)' : '3px solid transparent', padding: '14px 20px', opacity: deleting === r.id ? 0.5 : 1 }}
           onClick={() => setSelected(selected === r.id ? null : r.id)}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 14, fontWeight: 500 }}>{r.email || 'Anonyme'}</span>
               <span style={{ fontSize: 12, color: 'var(--text-hint)' }}>{new Date(r.created_at).toLocaleDateString('fr-CA', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' })}</span>
             </div>
-            <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: r.completed ? 'var(--forest-light)' : 'var(--blush-light)', color: r.completed ? 'var(--forest-dark)' : '#c0605e' }}>
-              {r.completed ? '✓ Complété' : 'Partiel'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: r.completed ? 'var(--forest-light)' : 'var(--blush-light)', color: r.completed ? 'var(--forest-dark)' : '#c0605e' }}>
+                {r.completed ? '✓ Complété' : 'Partiel'}
+              </span>
+              <button onClick={(e) => deleteResponse(e, r.id)} disabled={deleting === r.id}
+                style={{ fontSize: 12, padding: '4px 10px', color: '#c0605e', border: '1px solid #f5c0c0', borderRadius: 8, cursor: 'pointer', background: 'none', flexShrink: 0 }}>
+                {deleting === r.id ? '…' : 'Supprimer'}
+              </button>
+            </div>
           </div>
           {selected === r.id && (
             <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
