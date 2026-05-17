@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 
 export default function Login() {
   const [password, setPassword] = useState('')
@@ -12,23 +11,14 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError(false)
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke('admin-auth', {
-        body: { action: 'verify', password }
-      })
-      if (fnError || !data?.valid) {
-        setError(true)
-        setPassword('')
-      } else {
-        sessionStorage.setItem('auth', 'true')
-        navigate('/dashboard')
-      }
-    } catch {
+    if (password === import.meta.env.VITE_DASHBOARD_PASSWORD) {
+      sessionStorage.setItem('auth', 'true')
+      navigate('/dashboard')
+    } else {
       setError(true)
       setPassword('')
-    } finally {
-      setLoading(false)
     }
+    setLoading(false)
   }
 
   return (

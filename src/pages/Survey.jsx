@@ -100,7 +100,7 @@ export default function Survey() {
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 6 }}>{progress}% complété</p>
       </div>
 
-      <div style={{ maxWidth: 600, margin: '-2rem auto 0', padding: '0 1.25rem 3rem' }}>
+      <div style={{ maxWidth: 600, margin: '0 auto', padding: '1.5rem 1.25rem 3rem' }}>
         <div className="card" style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Votre courriel <span style={{ color: 'var(--text-hint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optionnel)</span></label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="votre@courriel.com" />
