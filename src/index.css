@@ -1,0 +1,97 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --forest: #3d5a3e;
+  --forest-dark: #2d4a2e;
+  --forest-light: #eef5ee;
+  --forest-mid: #7a9e7e;
+  --blush: #e8c4b8;
+  --blush-light: #fdf5f2;
+  --warm: #c4a882;
+  --warm-light: #faf6f0;
+  --text: #2c2420;
+  --text-mid: #5a5250;
+  --text-soft: #8a7e78;
+  --text-hint: #b8a898;
+  --border: #e4ddd6;
+  --border-focus: #7a9e7e;
+  --bg: #faf8f5;
+  --white: #ffffff;
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+}
+
+input, select, textarea, button {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+}
+
+input[type="text"],
+input[type="email"],
+textarea,
+select {
+  width: 100%;
+  padding: 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(122, 158, 126, 0.12);
+}
+
+.btn-primary {
+  background: var(--forest);
+  color: white;
+  padding: 13px 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.01em;
+}
+.btn-primary:hover { background: var(--forest-dark); }
+.btn-primary:disabled { background: #9ab89b; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--text);
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: var(--bg); }
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
